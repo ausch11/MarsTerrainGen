@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mars-lora-b1"
+version = "0.1.0"
+description = "SD1.5 text-only LoRA with frozen DINOv2 target-feature supervision"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.6,<2.7", "diffusers>=0.35,<0.37", "transformers>=4.56,<5",
+  "peft==0.18.0", "accelerate==1.12.0", "numpy>=1.24,<3", "Pillow>=10",
+  "safetensors>=0.4.3", "tensorboard>=2.16", "tqdm>=4.66"
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+mars-lora-train = "mars_lora.cli:train_main"
+mars-lora-generate = "mars_lora.cli:generate_main"
+mars-lora-inspect = "mars_lora.cli:inspect_main"
+
+[tool.setuptools.packages.find]
+include = ["mars_lora*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

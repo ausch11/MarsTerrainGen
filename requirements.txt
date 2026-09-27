@@ -1,0 +1,11 @@
+# Keep the existing torch 2.6.0+cu124 installation. Do not replace it with CPU torch.
+# APIs target diffusers 0.36; tests use 0.36.0 stable. Record the dev commit if using 0.36.0.dev0.
+diffusers>=0.35,<0.37
+transformers>=4.56,<5
+peft==0.18.0
+accelerate==1.12.0
+numpy>=1.24,<3
+Pillow>=10
+safetensors>=0.4.3
+tensorboard>=2.16
+tqdm>=4.66

@@ -1,0 +1,25 @@
+{
+  "pretrained_model_name_or_path": "/root/autodl-tmp/models_diffuser",
+  "train_data_dir": "/root/autodl-tmp/训练数据/train-v3",
+  "validation_data_dir": null,
+  "output_dir": "/root/autodl-tmp/output/baseline",
+  "cache_dir": "cache",
+  "resolution": 256,
+  "train_batch_size": 80,
+  "gradient_accumulation_steps": 4,
+  "dataloader_num_workers": 8,
+  "num_train_epochs": 70,
+  "unet_lr": 0.0004,
+  "text_encoder_lr": 0.0001,
+  "unet_rank": 64,
+  "unet_alpha": 64,
+  "text_encoder_rank": 32,
+  "text_encoder_alpha": 32,
+  "mixed_precision": "bf16",
+  "b1_enabled": false,
+  "resume_from_checkpoint": null,
+  "expected_unique_images": 13600,
+  "expected_num_classes": 17,
+  "expected_images_per_class": 800
+}
+
