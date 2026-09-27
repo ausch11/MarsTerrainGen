@@ -19,6 +19,7 @@ from .losses import batch_latents, diffusion_target, per_sample_diffusion_loss
 from .models import TrainingModel, load_components, trainable_summary, weight_dtype
 from .optim import make_optimizer, make_scheduler
 from .teacher import DinoTeacher
+from .text import audit_caption_lengths
 from .utils import atomic_json, environment_info, fingerprint, isolated_rng
 from .validation import build_prompts, evaluate_denoising, sample_validation
 
@@ -77,6 +78,9 @@ def train(cfg, cache_only=False, stop_after_steps=None):
         raise FileExistsError("Output contains an existing run. Choose a new output_dir or explicitly resume.")
     set_seed(cfg.seed)
     tokenizer, text_encoder, vae, unet, noise_scheduler = load_components(cfg, accelerator.device)
+    text_summary = audit_caption_lengths(records + validation_records, tokenizer,
+                                         cfg.max_token_length, cfg.max_prompt_chunks)
+    LOG.info("Caption token audit: %s", text_summary)
     # Cache construction and pretrained teacher initialization do not perturb training RNG.
     with isolated_rng():
         teacher = DinoTeacher(cfg, accelerator.device) if cfg.b1_enabled else None
@@ -127,6 +131,7 @@ def train(cfg, cache_only=False, stop_after_steps=None):
     counts = trainable_summary(raw_model)
     LOG.info("Trainable parameters: %s", counts)
     run_metadata = {"config": cfg.to_dict(), "environment": environment_info(),
+        "text": text_summary,
         "data": summary, "cache_signatures": cache.signatures, "signature": signature,
         "trainable": counts, "updates_per_epoch": updates_per_epoch, "total_steps": total_steps,
         "effective_full_batch": cfg.train_batch_size * cfg.gradient_accumulation_steps,

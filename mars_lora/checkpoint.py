@@ -88,6 +88,9 @@ def register_hooks(accelerator, model, cfg, noise_scheduler):
 
 def run_signature(cfg, data_id, cache_specs):
     recipe = cfg.to_dict()
+    # Old checkpoints predate this field and used exactly one CLIP window.
+    if recipe.get("max_prompt_chunks") == 1:
+        recipe.pop("max_prompt_chunks")
     # Reporting, workers and checkpoint frequency may change without changing optimization.
     for key in ("output_dir", "cache_dir", "resume_from_checkpoint", "report_to", "log_every",
                 "dataloader_num_workers", "persistent_data_loader_workers", "checkpointing_epochs",

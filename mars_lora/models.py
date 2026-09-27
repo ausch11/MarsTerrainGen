@@ -7,6 +7,7 @@ from torch import nn
 from torch.utils.checkpoint import checkpoint
 
 from .alignment import GlobalProjector, MidBlockTap
+from .text import encode_chunk_ids
 
 LOG = logging.getLogger(__name__)
 
@@ -57,10 +58,10 @@ class TrainingModel(nn.Module):
 
     def forward(self, noisy_latents, timesteps, input_ids, supervise=True):
         if self.cfg.train_text_encoder_lora:
-            encoded = self.text_encoder(input_ids, return_dict=False)[0]
+            encoded = encode_chunk_ids(self.text_encoder, input_ids)
         else:
             with torch.no_grad():
-                encoded = self.text_encoder(input_ids, return_dict=False)[0]
+                encoded = encode_chunk_ids(self.text_encoder, input_ids)
         capture = supervise and self.projector is not None
         if capture:
             self.tap.begin()
@@ -121,4 +122,3 @@ def trainable_summary(model):
         result[name] = {"parameters": sum(p.numel() for p in parameters),
                         "dtypes": sorted({str(p.dtype) for p in parameters})}
     return result
-

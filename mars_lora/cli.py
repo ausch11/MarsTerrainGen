@@ -53,13 +53,15 @@ def generate_main():
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--steps", type=int, default=30)
     parser.add_argument("--guidance-scale", type=float, default=7.5)
+    parser.add_argument("--max-prompt-chunks", type=int, default=None)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--precision", choices=["no", "bf16", "fp16"], default="bf16")
     parser.add_argument("--local-files-only", action="store_true")
     args = parser.parse_args()
     from .inference import generate
     paths = generate(args.adapter, args.prompt, args.output, args.num_images, args.seed,
-        args.steps, args.guidance_scale, args.device, args.precision, args.base_model, args.local_files_only)
+        args.steps, args.guidance_scale, args.device, args.precision, args.base_model,
+        args.local_files_only, args.max_prompt_chunks)
     print(json.dumps(paths, ensure_ascii=False, indent=2))
 
 
@@ -76,6 +78,8 @@ def batch_generate_main():
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--steps", type=int, default=30)
     parser.add_argument("--guidance-scale", type=float, default=7.5)
+    parser.add_argument("--max-prompt-chunks", type=int, default=None,
+                        help="Override the checkpoint's prompt chunk limit; old checkpoints default to one chunk")
     parser.add_argument("--negative-prompt", default=None)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--precision", choices=["no", "bf16", "fp16"], default="bf16")
@@ -96,6 +100,7 @@ def batch_generate_main():
         negative_prompt=args.negative_prompt, device=args.device, precision=args.precision,
         base_model=args.base_model, local_files_only=args.local_files_only,
         recursive=args.recursive, one_prompt_per_line=args.one_prompt_per_line,
-        overwrite=args.overwrite, skip_existing=args.skip_existing)
+        overwrite=args.overwrite, skip_existing=args.skip_existing,
+        max_prompt_chunks=args.max_prompt_chunks)
     print(json.dumps({k: v for k, v in result.items() if k != "images"},
                      ensure_ascii=False, indent=2))

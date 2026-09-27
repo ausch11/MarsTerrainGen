@@ -6,6 +6,7 @@ import torch
 
 from .losses import diffusion_target, per_sample_diffusion_loss
 from .models import weight_dtype
+from .text import encode_prompt_embeds
 from .utils import atomic_json, isolated_rng
 
 
@@ -81,7 +82,13 @@ def sample_validation(raw_model, vae, tokenizer, noise_scheduler, prompts, cfg, 
                 for image_index in range(cfg.num_validation_images):
                     generator = torch.Generator(device=accelerator.device).manual_seed(cfg.validation_seed + image_index)
                     with accelerator.autocast():
-                        image = pipe(item["prompt"], height=cfg.resolution, width=cfg.resolution,
+                        negatives = [""] if cfg.validation_guidance_scale > 1 else None
+                        prompt_embeds, negative_embeds = encode_prompt_embeds(
+                            pipe, [item["prompt"]], cfg.max_prompt_chunks,
+                            cfg.max_token_length, negatives)
+                        image = pipe(prompt_embeds=prompt_embeds,
+                            negative_prompt_embeds=negative_embeds,
+                            height=cfg.resolution, width=cfg.resolution,
                             num_inference_steps=cfg.validation_inference_steps,
                             guidance_scale=cfg.validation_guidance_scale, generator=generator).images[0]
                     image.save(folder / f"class-{class_index:02d}-seed-{cfg.validation_seed + image_index}.png")
@@ -89,4 +96,3 @@ def sample_validation(raw_model, vae, tokenizer, noise_scheduler, prompts, cfg, 
     finally:
         raw_model.train(original_mode)
         vae.to(device=vae_device, dtype=vae_dtype)
-

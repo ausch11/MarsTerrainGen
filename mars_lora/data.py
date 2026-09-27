@@ -10,6 +10,7 @@ import torch
 from torch.utils.data import Dataset, Sampler
 
 from .utils import file_sha256, fingerprint, seed_for
+from .text import chunk_prompt
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 
@@ -147,8 +148,8 @@ class CaptionedImageDataset(Dataset):
                                   self.cfg.keep_tokens,
                                   random.Random(seed_for(self.cfg.seed, epoch, slot, "caption")),
                                   self.cfg.caption_dropout if self.training else 0.0)
-        ids = self.tokenizer(caption, max_length=self.cfg.max_token_length,
-                             padding="max_length", truncation=True, return_tensors="pt").input_ids[0]
+        ids = chunk_prompt(self.tokenizer, caption, self.cfg.max_token_length,
+                           self.cfg.max_prompt_chunks, source=str(record.caption))
         latents = self.cache.load(record, "latent") if self.cfg.cache_latents else None
         features = self.cache.load(record, "feature") if self.cfg.b1_enabled and self.training else None
         pixels = None if self.cfg.cache_latents else pixels_from_image(canonical_image(
@@ -159,7 +160,17 @@ class CaptionedImageDataset(Dataset):
 
 def collate_fn(examples):
     result = {}
-    for key in ("input_ids", "latents", "pixel_values", "teacher_features"):
+    # The longest caption in the batch determines its cross-attention sequence.
+    # Empty CLIP chunks make the shape uniform without throwing away any tokens.
+    ids = [e["input_ids"] for e in examples]
+    length = ids[0].shape[1]
+    bos, eos = ids[0][0, 0].item(), ids[0][0, -1].item()
+    empty = ids[0].new_tensor([bos] + [eos] * (length - 1))
+    max_chunks = max(item.shape[0] for item in ids)
+    result["input_ids"] = torch.stack([
+        torch.cat([item, empty.expand(max_chunks - item.shape[0], -1)], dim=0)
+        for item in ids])
+    for key in ("latents", "pixel_values", "teacher_features"):
         values = [e[key] for e in examples]
         if all(v is None for v in values):
             result[key] = None
@@ -170,4 +181,3 @@ def collate_fn(examples):
     result["image_paths"] = [e["image_path"] for e in examples]
     result["captions"] = [e["caption"] for e in examples]
     return result
-

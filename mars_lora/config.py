@@ -60,6 +60,7 @@ class TrainConfig:
     report_to: str = "tensorboard"
     seed: int = 1337
     max_token_length: int = 77
+    max_prompt_chunks: int = 1  # Legacy checkpoints used one 77-token CLIP window.
     snr_gamma: Optional[float] = None
     noise_offset: float = 0.0
     prediction_type: Optional[str] = None
@@ -93,12 +94,15 @@ class TrainConfig:
         for name in ("resolution", "train_batch_size", "gradient_accumulation_steps",
                      "num_train_epochs", "cache_batch_size", "checkpointing_epochs",
                      "checkpoints_total_limit", "validation_epochs", "max_token_length",
+                     "max_prompt_chunks",
                      "projector_hidden_dim", "teacher_input_size", "validation_loss_batch_size",
                      "unet_rank", "text_encoder_rank", "log_every", "validation_inference_steps"):
             if getattr(self, name) <= 0:
                 raise ValueError(f"{name} must be positive")
         if self.resolution % 8:
             raise ValueError("resolution must be divisible by 8")
+        if self.max_token_length < 3:
+            raise ValueError("max_token_length must leave room for BOS and EOS tokens")
         if self.mixed_precision not in {"no", "fp16", "bf16"}:
             raise ValueError("mixed_precision must be no/fp16/bf16")
         if self.vae_dtype not in {"float32", "float16", "bfloat16"}:
@@ -142,4 +146,3 @@ def load_config(path, overrides=None):
     if unknown:
         raise ValueError(f"Unknown configuration fields: {sorted(unknown)}")
     return TrainConfig(**data).validate()
-
